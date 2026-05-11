@@ -27,6 +27,9 @@
     "type": "git",
     "url": "git+https://github.com/biggora/2checkout.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": "Aleksejs Gordejevs",
   "type": "module",
