@@ -1,4 +1,5 @@
 name: Publish
+# Touch this workflow so GitHub Actions rescans and re-registers it on the default branch.
 
 on:
   push:
