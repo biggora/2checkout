@@ -242,7 +242,10 @@ describe('2Checkout resource routing', () => {
     await client.subscriptions.pause('sub-1', { PauseDate: '2026-06-01' });
     await client.subscriptions.unpause('sub-1');
     await client.subscriptions.triggerUsageBilling('sub-1');
-    await client.subscriptions.getSignOnUrl('sub-1', 'my-account');
+    await client.subscriptions.getSignOnUrl('sub-1', 'my-account', {
+      Email: 'buyer@example.com',
+      ValidityTime: 25,
+    });
     await client.subscriptions.listUpgradeOptions('sub-1');
     await client.subscriptions.upgrade('sub-1', { ProductCode: 'pro' });
     await client.subscriptions.getUpgradePrice('sub-1', 'pro', 'USD', { Quantity: 2 });
@@ -329,6 +332,14 @@ describe('2Checkout resource routing', () => {
         call.url.pathname === '/rest/6.0/subscriptions/sub-1/upgrade/price/pro/USD/',
     );
     expect(upgradePriceCall?.url.searchParams.get('Quantity')).toBe('2');
+
+    const signOnCall = calls.find(
+      (call) =>
+        call.method === 'GET' &&
+        call.url.pathname === '/rest/6.0/subscriptions/sub-1/signon/my-account/',
+    );
+    expect(signOnCall?.url.searchParams.get('Email')).toBe('buyer@example.com');
+    expect(signOnCall?.url.searchParams.get('ValidityTime')).toBe('25');
   });
 
   it('URL-encodes special characters in path segments', async () => {

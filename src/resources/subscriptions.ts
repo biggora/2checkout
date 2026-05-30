@@ -20,6 +20,7 @@ export type SetRenewalGracePeriodInput = JsonRecord;
 export type SetRenewalPriceInput = JsonRecord;
 export type ConvertTrialInput = JsonRecord;
 export type PauseSubscriptionInput = JsonRecord;
+export type GetSignOnUrlQuery = QueryRecord;
 export type UpgradeSubscriptionInput = JsonRecord;
 export type ScheduleProductUpdateInput = JsonRecord;
 export type SaveUsagesInput = JsonRecord;
@@ -259,10 +260,15 @@ export class SubscriptionsResource {
     return this.request('PUT', this.subscriptionPath(reference, 'renewal/usage/'));
   }
 
-  getSignOnUrl(reference: string, pageType: string): Promise<JsonRecord> {
+  getSignOnUrl(
+    reference: string,
+    pageType: string,
+    query?: GetSignOnUrlQuery,
+  ): Promise<JsonRecord> {
     return this.request(
       'GET',
       this.subscriptionPath(reference, `signon/${encodeURIComponent(pageType)}/`),
+      { query },
     );
   }
 

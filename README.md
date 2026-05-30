@@ -127,6 +127,10 @@ await tc.subscriptions.getUpgradePrice('sub-1', 'plan-2', 'USD', { Quantity: 2 }
 await tc.subscriptions.listUsages('sub-1', { Limit: 20 });
 await tc.subscriptions.saveUsages('sub-1', { Usages: [/* ... */] });
 await tc.subscriptions.triggerUsageBilling('sub-1');
+await tc.subscriptions.getSignOnUrl('sub-1', 'my_products', {
+  Email: 'buyer@example.com',
+  ValidityTime: 25,
+});
 ```
 
 The subscription resource follows the official REST 6.0 lifecycle paths, including
