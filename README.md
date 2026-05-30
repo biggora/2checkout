@@ -6,6 +6,11 @@
 
 TypeScript SDK and optional NestJS adapter for the [2Checkout (Verifone) REST API 6.0](https://verifone.cloud/docs/2checkout/API-Integration/REST-6.0-Reference).
 
+## Official Verifone docs
+
+- REST API 6.0 reference: [verifone.cloud/docs/2checkout/API-Integration/REST-6.0-Reference](https://verifone.cloud/docs/2checkout/API-Integration/REST-6.0-Reference)
+- IPN hash signature guide: [verifone.cloud/docs/2checkout/API-Integration/Webhooks/06Instant_Payment_Notification_%28IPN%29/Calculate-the-IPN-HASH-signature](https://verifone.cloud/docs/2checkout/API-Integration/Webhooks/06Instant_Payment_Notification_%28IPN%29/Calculate-the-IPN-HASH-signature)
+
 ## Features
 
 - Full coverage of REST 6.0 resource groups: **products, pricing, customers, subscriptions, orders, refunds, promotions, cross-sell, shipping**.
@@ -268,6 +273,22 @@ export class BillingService {
 - Set `sandbox: true` and 2Checkout will route the request as a demo transaction; the module automatically appends `demo: true` to POST/PUT/PATCH bodies. For specific endpoints that reject extra fields, pass `skipDemoInjection: true` on the per-request `client.request(...)` call.
 - Inject a custom `fetch` to mock the HTTP layer in unit tests (see `test/client-core.test.ts`).
 - Inject a custom `now` so the HMAC header is deterministic in golden tests.
+
+## Scripts
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution workflow, local verification steps, and PR expectations.
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for release history.
 
 ## License
 
