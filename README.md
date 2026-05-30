@@ -111,12 +111,37 @@ await tc.customers.search({ Email: 'buyer@example.com' });
 await tc.subscriptions.list({ Status: 'ACTIVE' });
 await tc.subscriptions.get('sub-1');
 await tc.subscriptions.update('sub-1', { Trial: false });
-await tc.subscriptions.cancel('sub-1', { Reason: 'churn', Comment: 'user request' });
 await tc.subscriptions.disable('sub-1');
 await tc.subscriptions.enable('sub-1');
-await tc.subscriptions.changePlan('sub-1', { ProductCode: 'plan-2', BillingCycle: 1 });
-await tc.subscriptions.updatePaymentInfo('sub-1', { Token: '...' });
+await tc.subscriptions.getRenewal('sub-1');
+await tc.subscriptions.renew('sub-1', { Currency: 'USD' });
+await tc.subscriptions.pause('sub-1', { PauseDate: '2026-06-01' });
+await tc.subscriptions.unpause('sub-1');
+await tc.subscriptions.copyPaymentInfo('sub-1', 'source-subscription-ref');
+await tc.subscriptions.updatePaymentInfo('sub-1', {
+  PaymentDetails: { Type: 'EES_TOKEN_PAYMENT', PaymentMethod: { EesToken: '...' } },
+});
+await tc.subscriptions.listUpgradeOptions('sub-1');
+await tc.subscriptions.upgrade('sub-1', { ProductCode: 'plan-2', BillingCycle: 1 });
+await tc.subscriptions.getUpgradePrice('sub-1', 'plan-2', 'USD', { Quantity: 2 });
+await tc.subscriptions.listUsages('sub-1', { Limit: 20 });
+await tc.subscriptions.saveUsages('sub-1', { Usages: [/* ... */] });
+await tc.subscriptions.triggerUsageBilling('sub-1');
 ```
+
+The subscription resource follows the official REST 6.0 lifecycle paths, including
+additional information, customer reassignment, end-user updates, history extension,
+payment copy/update, renewal controls, upgrade pricing, scheduled product updates,
+usage billing, subscription SSO, deal change/cancel, and churn-prevention campaigns.
+
+Compatibility caveats:
+
+- `subscriptions.search(query)` is kept as an alias for `list(query)` because the
+  official search endpoint is `GET /subscriptions/`.
+- `subscriptions.changePlan(reference, body)` is kept as an alias for
+  `upgrade(reference, body)`, which calls `PUT /subscriptions/{reference}/upgrade/`.
+- `subscriptions.cancel(reference)` is kept as an alias for `disable(reference)`,
+  which calls `DELETE /subscriptions/{reference}/`.
 
 ### Orders & Refunds
 

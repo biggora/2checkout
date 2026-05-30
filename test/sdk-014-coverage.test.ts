@@ -73,7 +73,7 @@ describe('OSTW-SDK-014 coverage expansion', () => {
     });
   });
 
-  it('returns a subscription change-plan happy-path response from REST 6.0', async () => {
+  it('routes the change-plan compatibility alias to the official upgrade endpoint', async () => {
     const fetchMock = vi.fn<FetchLike>(async () =>
       jsonResponse({
         SubscriptionReference: 'sub-1',
@@ -101,8 +101,8 @@ describe('OSTW-SDK-014 coverage expansion', () => {
     });
     const call = fetchMock.mock.calls[0];
     if (!call) throw new Error('Expected fetch call.');
-    expect(new URL(String(call[0])).pathname).toBe('/rest/6.0/subscriptions/sub-1/change-plan/');
-    expect(call[1]?.method).toBe('POST');
+    expect(new URL(String(call[0])).pathname).toBe('/rest/6.0/subscriptions/sub-1/upgrade/');
+    expect(call[1]?.method).toBe('PUT');
     expect(JSON.parse(call[1]?.body as string)).toEqual({
       ProductCode: 'plan-enterprise',
       Prorate: true,

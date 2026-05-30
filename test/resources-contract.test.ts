@@ -131,12 +131,12 @@ describe('2Checkout resource routing', () => {
       'GET /rest/6.0/subscriptions/',
       'GET /rest/6.0/subscriptions/sub-1/',
       'PUT /rest/6.0/subscriptions/sub-1/',
-      'POST /rest/6.0/subscriptions/sub-1/cancel/',
-      'POST /rest/6.0/subscriptions/sub-1/disable/',
-      'POST /rest/6.0/subscriptions/sub-1/enable/',
-      'POST /rest/6.0/subscriptions/sub-1/change-plan/',
-      'PUT /rest/6.0/subscriptions/sub-1/payment-information/',
-      'GET /rest/6.0/subscriptions/search/',
+      'DELETE /rest/6.0/subscriptions/sub-1/',
+      'DELETE /rest/6.0/subscriptions/sub-1/',
+      'POST /rest/6.0/subscriptions/sub-1/',
+      'PUT /rest/6.0/subscriptions/sub-1/upgrade/',
+      'PUT /rest/6.0/subscriptions/sub-1/payment/',
+      'GET /rest/6.0/subscriptions/',
       // Orders
       'GET /rest/6.0/orders/',
       'GET /rest/6.0/orders/order-1/',
@@ -179,6 +179,156 @@ describe('2Checkout resource routing', () => {
       (c) => c.method === 'POST' && c.url.pathname === '/rest/6.0/orders/',
     )?.body;
     expect(ordersPlaceBody && JSON.parse(ordersPlaceBody)).toEqual({ Currency: 'USD' });
+  });
+
+  it('routes official REST 6.0 subscription lifecycle methods', async () => {
+    const calls: Array<{ url: URL; method: string; body: string | undefined }> = [];
+    const fetchMock = vi.fn<FetchLike>(async (input: FetchRequestInput, init?: RequestInit) => {
+      calls.push({
+        url: new URL(String(input)),
+        method: init?.method ?? 'GET',
+        body: typeof init?.body === 'string' ? init.body : undefined,
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    const client = createTwoCheckoutClient({
+      merchantCode: 'MERCHANT',
+      secretKey: 'secret',
+      baseUrl: 'https://api.test/rest/6.0/',
+      fetch: fetchMock,
+      now: () => new Date(Date.UTC(2026, 4, 11, 13, 0, 0)),
+    });
+
+    await client.subscriptions.list({ Status: 'ACTIVE' });
+    await client.subscriptions.importTest({ SubscriptionReference: 'sub-1' });
+    await client.subscriptions.get('sub-1');
+    await client.subscriptions.update('sub-1', { Status: 'ACTIVE' });
+    await client.subscriptions.enable('sub-1');
+    await client.subscriptions.disable('sub-1');
+    await client.subscriptions.listAdditionalInformation('sub-1');
+    await client.subscriptions.addAdditionalInformation('sub-1', { Name: 'tier', Value: 'pro' });
+    await client.subscriptions.getAdditionalInformation('sub-1', 'tier');
+    await client.subscriptions.updateAdditionalInformation('sub-1', 'tier', { Value: 'team' });
+    await client.subscriptions.deleteAdditionalInformation('sub-1', 'tier');
+    await client.subscriptions.getCustomer('sub-1');
+    await client.subscriptions.assignCustomer('sub-1', { CustomerReference: 42 });
+    await client.subscriptions.getEndUser('sub-1');
+    await client.subscriptions.updateEndUser('sub-1', { Email: 'buyer@example.com' });
+    await client.subscriptions.listHistory('sub-1');
+    await client.subscriptions.extendHistory('sub-1', { ExpirationDate: '2026-12-31' });
+    await client.subscriptions.getHistoryDetail('sub-1', 'order-1');
+    await client.subscriptions.getPaymentInfo('sub-1');
+    await client.subscriptions.copyPaymentInfo('sub-1', 'source-sub');
+    await client.subscriptions.updatePaymentInfo('sub-1', { PaymentDetails: { Type: 'TOKEN' } });
+    await client.subscriptions.getRenewal('sub-1');
+    await client.subscriptions.renew('sub-1', { Currency: 'USD' });
+    await client.subscriptions.enableRecurringBilling('sub-1');
+    await client.subscriptions.disableRecurringBilling('sub-1');
+    await client.subscriptions.setRenewalGracePeriod('sub-1', { GracePeriod: 7 });
+    await client.subscriptions.enableRenewalNotification('sub-1');
+    await client.subscriptions.disableRenewalNotification('sub-1');
+    await client.subscriptions.enableMerchantDealAutoRenewal('sub-1');
+    await client.subscriptions.disableMerchantDealAutoRenewal('sub-1');
+    await client.subscriptions.enableClientDealAutoRenewal('sub-1');
+    await client.subscriptions.disableClientDealAutoRenewal('sub-1');
+    await client.subscriptions.getRenewalPrice('sub-1', 'USD');
+    await client.subscriptions.setRenewalPrice('sub-1', 'USD', { Price: 20 });
+    await client.subscriptions.convertTrial('sub-1', { Currency: 'USD' });
+    await client.subscriptions.getPause('sub-1');
+    await client.subscriptions.pause('sub-1', { PauseDate: '2026-06-01' });
+    await client.subscriptions.unpause('sub-1');
+    await client.subscriptions.triggerUsageBilling('sub-1');
+    await client.subscriptions.getSignOnUrl('sub-1', 'my-account');
+    await client.subscriptions.listUpgradeOptions('sub-1');
+    await client.subscriptions.upgrade('sub-1', { ProductCode: 'pro' });
+    await client.subscriptions.getUpgradePrice('sub-1', 'pro', 'USD', { Quantity: 2 });
+    await client.subscriptions.scheduleProductUpdate('sub-1', { ProductCode: 'pro' });
+    await client.subscriptions.removeScheduledProductUpdate('sub-1');
+    await client.subscriptions.listUsages('sub-1', { Limit: 10 });
+    await client.subscriptions.saveUsages('sub-1', { Usages: [] });
+    await client.subscriptions.deleteUsages('sub-1', { UsageReference: 1 });
+    await client.subscriptions.updateUsage('sub-1', 1, { Units: 3 });
+    await client.subscriptions.changeDeal({ Items: [] });
+    await client.subscriptions.cancelDeal('sub-1');
+    await client.subscriptions.listEligibleChurnCampaigns('sub-1', 'en');
+    await client.subscriptions.acceptChurnCampaignDiscount('sub-1', 'campaign-1');
+    await client.subscriptions.enterChurnCampaign('sub-1', 'campaign-1', { Reason: 'price' });
+
+    expect(calls.map(({ url, method }) => `${method} ${url.pathname}`)).toEqual([
+      'GET /rest/6.0/subscriptions/',
+      'POST /rest/6.0/subscriptions/',
+      'GET /rest/6.0/subscriptions/sub-1/',
+      'PUT /rest/6.0/subscriptions/sub-1/',
+      'POST /rest/6.0/subscriptions/sub-1/',
+      'DELETE /rest/6.0/subscriptions/sub-1/',
+      'GET /rest/6.0/subscriptions/sub-1/additionalinformation/',
+      'POST /rest/6.0/subscriptions/sub-1/additionalinformation/',
+      'GET /rest/6.0/subscriptions/sub-1/additionalinformation/tier/',
+      'PUT /rest/6.0/subscriptions/sub-1/additionalinformation/tier/',
+      'DELETE /rest/6.0/subscriptions/sub-1/additionalinformation/tier/',
+      'GET /rest/6.0/subscriptions/sub-1/customer/',
+      'POST /rest/6.0/subscriptions/sub-1/customer/',
+      'GET /rest/6.0/subscriptions/sub-1/enduser/',
+      'PUT /rest/6.0/subscriptions/sub-1/enduser/',
+      'GET /rest/6.0/subscriptions/sub-1/history/',
+      'PUT /rest/6.0/subscriptions/sub-1/history/',
+      'GET /rest/6.0/subscriptions/sub-1/history/order-1/',
+      'GET /rest/6.0/subscriptions/sub-1/payment/',
+      'POST /rest/6.0/subscriptions/sub-1/payment/',
+      'PUT /rest/6.0/subscriptions/sub-1/payment/',
+      'GET /rest/6.0/subscriptions/sub-1/renewal/',
+      'PUT /rest/6.0/subscriptions/sub-1/renewal/',
+      'POST /rest/6.0/subscriptions/sub-1/renewal/',
+      'DELETE /rest/6.0/subscriptions/sub-1/renewal/',
+      'PUT /rest/6.0/subscriptions/sub-1/renewal/graceperiod/',
+      'POST /rest/6.0/subscriptions/sub-1/renewal/notification/',
+      'DELETE /rest/6.0/subscriptions/sub-1/renewal/notification/',
+      'POST /rest/6.0/subscriptions/sub-1/renewal/merchantdealautorenewal/',
+      'DELETE /rest/6.0/subscriptions/sub-1/renewal/merchantdealautorenewal/',
+      'POST /rest/6.0/subscriptions/sub-1/renewal/clientdealautorenewal/',
+      'DELETE /rest/6.0/subscriptions/sub-1/renewal/clientdealautorenewal/',
+      'GET /rest/6.0/subscriptions/sub-1/renewal/price/USD/',
+      'PUT /rest/6.0/subscriptions/sub-1/renewal/price/USD/',
+      'PUT /rest/6.0/subscriptions/sub-1/renewal/trial/',
+      'GET /rest/6.0/subscriptions/sub-1/renewal/pause/',
+      'POST /rest/6.0/subscriptions/sub-1/renewal/pause/',
+      'DELETE /rest/6.0/subscriptions/sub-1/renewal/pause/',
+      'PUT /rest/6.0/subscriptions/sub-1/renewal/usage/',
+      'GET /rest/6.0/subscriptions/sub-1/signon/my-account/',
+      'GET /rest/6.0/subscriptions/sub-1/upgrade/',
+      'PUT /rest/6.0/subscriptions/sub-1/upgrade/',
+      'GET /rest/6.0/subscriptions/sub-1/upgrade/price/pro/USD/',
+      'POST /rest/6.0/subscriptions/sub-1/schedule-product-update',
+      'DELETE /rest/6.0/subscriptions/sub-1/remove-scheduled-product-update',
+      'GET /rest/6.0/subscriptions/sub-1/usages/',
+      'POST /rest/6.0/subscriptions/sub-1/usages/',
+      'DELETE /rest/6.0/subscriptions/sub-1/usages/',
+      'PUT /rest/6.0/subscriptions/sub-1/usages/1',
+      'POST /rest/6.0/subscriptions/deal/change/',
+      'DELETE /rest/6.0/subscriptions/sub-1/deal/',
+      'GET /rest/6.0/subscriptions/sub-1/eligible-campaigns/en',
+      'POST /rest/6.0/subscriptions/sub-1/churn-campaigns/campaign-1/accept-discount',
+      'POST /rest/6.0/subscriptions/sub-1/churn-campaigns/campaign-1/enter',
+    ]);
+
+    const copyPaymentCall = calls.find(
+      (call) =>
+        call.method === 'POST' &&
+        call.url.pathname === '/rest/6.0/subscriptions/sub-1/payment/',
+    );
+    expect(copyPaymentCall?.url.searchParams.get('SubscriptionCode')).toBe('source-sub');
+    expect(copyPaymentCall?.body).toBeUndefined();
+
+    const upgradePriceCall = calls.find(
+      (call) =>
+        call.method === 'GET' &&
+        call.url.pathname === '/rest/6.0/subscriptions/sub-1/upgrade/price/pro/USD/',
+    );
+    expect(upgradePriceCall?.url.searchParams.get('Quantity')).toBe('2');
   });
 
   it('URL-encodes special characters in path segments', async () => {
