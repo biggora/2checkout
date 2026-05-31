@@ -361,16 +361,19 @@ describe('2Checkout resource routing', () => {
     await client.subscriptions.renew('sub-1', { Currency: 'USD' });
     await client.subscriptions.enableRecurringBilling('sub-1');
     await client.subscriptions.disableRecurringBilling('sub-1');
-    await client.subscriptions.setRenewalGracePeriod('sub-1', { GracePeriod: 7 });
+    await client.subscriptions.setRenewalGracePeriod('sub-1', { Days: 7 });
     await client.subscriptions.enableRenewalNotification('sub-1');
-    await client.subscriptions.disableRenewalNotification('sub-1');
+    await client.subscriptions.disableRenewalNotification('sub-1', {
+      ChurnReasons: ['CHURN_REASON_HIGH_PRICE'],
+      ChurnReasonOther: 'Too expensive',
+    });
     await client.subscriptions.enableMerchantDealAutoRenewal('sub-1');
     await client.subscriptions.disableMerchantDealAutoRenewal('sub-1');
     await client.subscriptions.enableClientDealAutoRenewal('sub-1');
     await client.subscriptions.disableClientDealAutoRenewal('sub-1');
     await client.subscriptions.getRenewalPrice('sub-1', 'USD');
     await client.subscriptions.setRenewalPrice('sub-1', 'USD', { Price: 20 });
-    await client.subscriptions.convertTrial('sub-1', { Currency: 'USD' });
+    await client.subscriptions.convertTrial('sub-1', { Currency: 'USD', Days: 30 });
     await client.subscriptions.getPause('sub-1');
     await client.subscriptions.pause('sub-1', { PauseDate: '2026-06-01' });
     await client.subscriptions.unpause('sub-1');
@@ -473,6 +476,44 @@ describe('2Checkout resource routing', () => {
     );
     expect(signOnCall?.url.searchParams.get('Email')).toBe('buyer@example.com');
     expect(signOnCall?.url.searchParams.get('ValidityTime')).toBe('25');
+
+    const gracePeriodCall = calls.find(
+      (call) =>
+        call.method === 'PUT' &&
+        call.url.pathname === '/rest/6.0/subscriptions/sub-1/renewal/graceperiod/',
+    );
+    expect(gracePeriodCall?.url.searchParams.get('Days')).toBe('7');
+    expect(gracePeriodCall?.body).toBeUndefined();
+
+    const disableNotificationCall = calls.find(
+      (call) =>
+        call.method === 'DELETE' &&
+        call.url.pathname === '/rest/6.0/subscriptions/sub-1/renewal/notification/',
+    );
+    expect(disableNotificationCall?.url.searchParams.get('ChurnReasons')).toBe(
+      'CHURN_REASON_HIGH_PRICE',
+    );
+    expect(disableNotificationCall?.url.searchParams.get('ChurnReasonOther')).toBe(
+      'Too expensive',
+    );
+    expect(disableNotificationCall?.body).toBeUndefined();
+
+    const convertTrialCall = calls.find(
+      (call) =>
+        call.method === 'PUT' &&
+        call.url.pathname === '/rest/6.0/subscriptions/sub-1/renewal/trial/',
+    );
+    expect(convertTrialCall?.url.searchParams.get('Currency')).toBe('USD');
+    expect(convertTrialCall?.url.searchParams.get('Days')).toBe('30');
+    expect(convertTrialCall?.body).toBeUndefined();
+
+    const deleteUsagesCall = calls.find(
+      (call) =>
+        call.method === 'DELETE' &&
+        call.url.pathname === '/rest/6.0/subscriptions/sub-1/usages/',
+    );
+    expect(deleteUsagesCall?.url.searchParams.get('UsageReference')).toBe('1');
+    expect(deleteUsagesCall?.body).toBeUndefined();
   });
 
   it('URL-encodes special characters in path segments', async () => {

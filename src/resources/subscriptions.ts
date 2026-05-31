@@ -16,15 +16,31 @@ export type UpdateEndUserInput = JsonRecord;
 export type ExtendSubscriptionHistoryInput = JsonRecord;
 export type UpdatePaymentInfoInput = JsonRecord;
 export type RenewSubscriptionInput = JsonRecord;
-export type SetRenewalGracePeriodInput = JsonRecord;
+export type SetRenewalGracePeriodInput = QueryRecord & {
+  Days: number | string | null;
+};
 export type SetRenewalPriceInput = JsonRecord;
-export type ConvertTrialInput = JsonRecord;
+export type DisableRenewalNotificationQuery = QueryRecord & {
+  ChurnReasons?: string[] | undefined;
+  ChurnReasonOther?: string | undefined;
+};
+export type ConvertTrialInput = QueryRecord & {
+  Currency?: string | undefined;
+  Days?: number | undefined;
+  ExtendSubscription?: boolean | undefined;
+  Price?: number | undefined;
+};
 export type PauseSubscriptionInput = JsonRecord;
 export type GetSignOnUrlQuery = QueryRecord;
 export type UpgradeSubscriptionInput = JsonRecord;
 export type ScheduleProductUpdateInput = JsonRecord;
 export type SaveUsagesInput = JsonRecord;
-export type DeleteUsagesInput = JsonRecord;
+export type DeleteUsagesInput = QueryRecord & {
+  UsageReference?: string | number | undefined;
+  OptionCode?: string | undefined;
+  IntervalStart?: string | undefined;
+  IntervalEnd?: string | undefined;
+};
 export type UpdateUsageInput = JsonRecord;
 export type ChangeDealInput = JsonRecord;
 export type EnterChurnCampaignInput = JsonRecord;
@@ -178,10 +194,10 @@ export class SubscriptionsResource {
 
   setRenewalGracePeriod(
     reference: string,
-    body: SetRenewalGracePeriodInput,
+    query: SetRenewalGracePeriodInput,
   ): Promise<JsonValue> {
     return this.request('PUT', this.subscriptionPath(reference, 'renewal/graceperiod/'), {
-      body,
+      query,
     });
   }
 
@@ -189,8 +205,13 @@ export class SubscriptionsResource {
     return this.request('POST', this.subscriptionPath(reference, 'renewal/notification/'));
   }
 
-  disableRenewalNotification(reference: string): Promise<JsonValue> {
-    return this.request('DELETE', this.subscriptionPath(reference, 'renewal/notification/'));
+  disableRenewalNotification(
+    reference: string,
+    query?: DisableRenewalNotificationQuery,
+  ): Promise<JsonValue> {
+    return this.request('DELETE', this.subscriptionPath(reference, 'renewal/notification/'), {
+      query,
+    });
   }
 
   enableMerchantDealAutoRenewal(reference: string): Promise<JsonValue> {
@@ -240,8 +261,8 @@ export class SubscriptionsResource {
     );
   }
 
-  convertTrial(reference: string, body: ConvertTrialInput): Promise<JsonValue> {
-    return this.request('PUT', this.subscriptionPath(reference, 'renewal/trial/'), { body });
+  convertTrial(reference: string, query?: ConvertTrialInput): Promise<JsonValue> {
+    return this.request('PUT', this.subscriptionPath(reference, 'renewal/trial/'), { query });
   }
 
   getPause(reference: string): Promise<JsonRecord> {
@@ -324,8 +345,8 @@ export class SubscriptionsResource {
     return this.request('POST', this.subscriptionPath(reference, 'usages/'), { body });
   }
 
-  deleteUsages(reference: string, body: DeleteUsagesInput): Promise<JsonValue> {
-    return this.request('DELETE', this.subscriptionPath(reference, 'usages/'), { body });
+  deleteUsages(reference: string, query: DeleteUsagesInput): Promise<JsonValue> {
+    return this.request('DELETE', this.subscriptionPath(reference, 'usages/'), { query });
   }
 
   updateUsage(reference: string, usageReference: string | number, body: UpdateUsageInput): Promise<JsonValue> {

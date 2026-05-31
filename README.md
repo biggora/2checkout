@@ -155,6 +155,8 @@ await tc.subscriptions.disable('sub-1');
 await tc.subscriptions.enable('sub-1');
 await tc.subscriptions.getRenewal('sub-1');
 await tc.subscriptions.renew('sub-1', { Currency: 'USD' });
+await tc.subscriptions.setRenewalGracePeriod('sub-1', { Days: 7 });
+await tc.subscriptions.convertTrial('sub-1', { Currency: 'USD', Days: 30 });
 await tc.subscriptions.pause('sub-1', { PauseDate: '2026-06-01' });
 await tc.subscriptions.unpause('sub-1');
 await tc.subscriptions.copyPaymentInfo('sub-1', 'source-subscription-ref');
@@ -166,6 +168,7 @@ await tc.subscriptions.upgrade('sub-1', { ProductCode: 'plan-2', BillingCycle: 1
 await tc.subscriptions.getUpgradePrice('sub-1', 'plan-2', 'USD', { Quantity: 2 });
 await tc.subscriptions.listUsages('sub-1', { Limit: 20 });
 await tc.subscriptions.saveUsages('sub-1', { Usages: [/* ... */] });
+await tc.subscriptions.deleteUsages('sub-1', { UsageReference: 123 });
 await tc.subscriptions.triggerUsageBilling('sub-1');
 await tc.subscriptions.getSignOnUrl('sub-1', 'my_products', {
   Email: 'buyer@example.com',
