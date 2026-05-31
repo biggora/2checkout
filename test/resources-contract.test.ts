@@ -41,6 +41,9 @@ describe('2Checkout resource routing', () => {
     await client.products.listPriceOptions('sku-1');
     await client.products.listPromotions('sku-1');
     await client.products.getPromotion('sku-1', 'promo-1');
+    await client.products.getPriceMatrix([
+      { productCode: 'sku-1', pricingConfigurationCode: 'default' },
+    ]);
 
     // Product SKU
     await client.productSku.generateSchema({ ProductCode: 'sku-1' });
@@ -181,6 +184,7 @@ describe('2Checkout resource routing', () => {
       'GET /rest/6.0/products/sku-1/priceoptions/',
       'GET /rest/6.0/products/sku-1/promotions/',
       'GET /rest/6.0/products/sku-1/promotions/promo-1/',
+      'POST /rest/6.0/promotions/priceMatrix/',
       // Product SKU
       'GET /rest/6.0/productsku/',
       'GET /rest/6.0/productsku/search',
@@ -312,6 +316,13 @@ describe('2Checkout resource routing', () => {
     );
     expect(paymentMethodsCall?.url.searchParams.get('CountryCode')).toBe('US');
     expect(paymentMethodsCall?.url.searchParams.get('PaymentMethod')).toBe('CC');
+
+    const priceMatrixBody = calls.find(
+      (c) => c.method === 'POST' && c.url.pathname === '/rest/6.0/promotions/priceMatrix/',
+    )?.body;
+    expect(priceMatrixBody && JSON.parse(priceMatrixBody)).toEqual([
+      { productCode: 'sku-1', pricingConfigurationCode: 'default' },
+    ]);
   });
 
   it('routes official REST 6.0 subscription lifecycle methods', async () => {

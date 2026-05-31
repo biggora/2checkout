@@ -3,6 +3,7 @@ import type {
   JsonRecord,
   QueryRecord,
   TwoCheckoutList,
+  TwoCheckoutProductPriceMatrix,
   TwoCheckoutProduct,
 } from '../core/types.js';
 
@@ -11,6 +12,12 @@ export type UpdateProductInput = JsonRecord;
 export type ListProductsQuery = QueryRecord;
 export type SearchProductsQuery = QueryRecord;
 export type SetProductUpgradeSchemaInput = JsonRecord;
+export type GetProductPriceMatrixInput = Array<
+  JsonRecord & {
+    productCode?: string;
+    pricingConfigurationCode?: string;
+  }
+>;
 
 export class ProductsResource {
   constructor(private readonly httpClient: HttpClient) {}
@@ -130,6 +137,16 @@ export class ProductsResource {
       path:
         `products/${encodeURIComponent(code)}/promotions/` +
         `${encodeURIComponent(promotionCode)}/`,
+    });
+  }
+
+  getPriceMatrix(
+    body: GetProductPriceMatrixInput,
+  ): Promise<TwoCheckoutProductPriceMatrix[]> {
+    return this.httpClient.request({
+      method: 'POST',
+      path: 'promotions/priceMatrix/',
+      body,
     });
   }
 }

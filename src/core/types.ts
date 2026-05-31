@@ -43,6 +43,24 @@ export type TwoCheckoutPricingConfiguration = JsonRecord & {
   PriceType?: string;
 };
 
+export type TwoCheckoutPriceMatrixOption = JsonRecord & {
+  GroupName?: string;
+  OptionText?: string;
+};
+
+export type TwoCheckoutPriceMatrixPrice = JsonRecord & {
+  Value?: number | null;
+  Currency?: string;
+};
+
+export type TwoCheckoutProductPriceMatrix = JsonRecord & {
+  ProductCode?: string;
+  PricingConfigurationCode?: string;
+  OptionHash?: string;
+  Options?: TwoCheckoutPriceMatrixOption[];
+  Prices?: TwoCheckoutPriceMatrixPrice[];
+};
+
 export type TwoCheckoutCustomer = JsonRecord & {
   CustomerReference?: number | string;
   ExternalCustomerReference?: string;

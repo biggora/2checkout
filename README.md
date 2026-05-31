@@ -86,6 +86,9 @@ await tc.products.setUpgradeSchema('pro', { Upgrades: [/* ... */] });
 await tc.products.listPriceOptions('pro');
 await tc.products.listPromotions('pro');
 await tc.products.getPromotion('pro', 'promo-1');
+await tc.products.getPriceMatrix([
+  { productCode: 'pro', pricingConfigurationCode: 'default' },
+]);
 ```
 
 ### Product SKUs & Groups
