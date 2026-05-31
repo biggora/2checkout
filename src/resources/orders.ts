@@ -1,6 +1,7 @@
 import type { HttpClient } from '../core/http-client.js';
 import type {
   JsonRecord,
+  JsonValue,
   QueryRecord,
   TwoCheckoutList,
   TwoCheckoutOrder,
@@ -10,6 +11,7 @@ import type {
 export type PlaceOrderInput = JsonRecord;
 export type UpdateOrderInput = JsonRecord;
 export type RefundOrderInput = JsonRecord;
+export type UploadOrderFormInput = JsonRecord;
 
 export class OrdersResource {
   constructor(private readonly httpClient: HttpClient) {}
@@ -65,6 +67,44 @@ export class OrdersResource {
     return this.httpClient.request({
       method: 'GET',
       path: `orders/${encodeURIComponent(refNo)}/refund/`,
+    });
+  }
+
+  cancelRefund(refNo: string): Promise<JsonValue> {
+    return this.httpClient.request({
+      method: 'DELETE',
+      path: `orders/${encodeURIComponent(refNo)}/refund/`,
+    });
+  }
+
+  cancel(orderReference: string): Promise<JsonValue> {
+    return this.httpClient.request({
+      method: 'DELETE',
+      path: `orders/${encodeURIComponent(orderReference)}/`,
+    });
+  }
+
+  uploadForm(orderReference: string, body: UploadOrderFormInput): Promise<JsonValue> {
+    return this.httpClient.request({
+      method: 'POST',
+      path: `orders/${encodeURIComponent(orderReference)}/upload`,
+      body,
+    });
+  }
+
+  getReferenceBySaleId(saleId: string | number): Promise<JsonRecord> {
+    return this.httpClient.request({
+      method: 'GET',
+      path: 'orders/0/sale/',
+      query: { SaleId: saleId },
+    });
+  }
+
+  getReferenceByInvoiceId(invoiceId: string): Promise<JsonRecord> {
+    return this.httpClient.request({
+      method: 'GET',
+      path: 'orders/0/invoice/',
+      query: { InvoiceId: invoiceId },
     });
   }
 

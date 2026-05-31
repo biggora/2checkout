@@ -13,7 +13,7 @@ TypeScript SDK and optional NestJS adapter for the [2Checkout (Verifone) REST AP
 
 ## Features
 
-- Full coverage of REST 6.0 resource groups: **products, pricing, customers, subscriptions, orders, refunds, promotions, cross-sell, shipping**.
+- Full coverage of REST 6.0 resource groups: **products, product SKUs, product groups, price options, product pricing configurations, tax categories, customers, subscriptions, orders, refunds, checkout, payment methods, invoices, proposals, promotions, cross-sell, shipping**.
 - HMAC `X-Avangate-Authentication` header with `sha256` (default) and `sha3-256` support — MD5 omitted (deprecated by 2Checkout).
 - Sandbox mode auto-injects `demo: true` into mutating request bodies; toggle with a single option.
 - IPN webhook parser (form-urlencoded + JSON) and timing-safe HMAC signature verifier.
@@ -76,21 +76,61 @@ await tc.products.list({ Limit: 20 });
 await tc.products.get('sku-1');
 await tc.products.create({ ProductName: 'Pro Plan', ProductCode: 'pro' });
 await tc.products.update('pro', { Enabled: true });
-await tc.products.delete('pro');
-await tc.products.search({ Search: 'plan' });
+await tc.products.enable('pro');
+await tc.products.disable('pro');
+await tc.products.search({ Name: 'plan' }); // alias for GET /products/ with query filters
+await tc.products.listImages('pro');
+await tc.products.getImage('pro', 'default');
+await tc.products.listCrossSells('pro');
+await tc.products.setUpgradeSchema('pro', { Upgrades: [/* ... */] });
 await tc.products.listPriceOptions('pro');
+await tc.products.listPromotions('pro');
+await tc.products.getPromotion('pro', 'promo-1');
 ```
 
-### Pricing
+### Product SKUs & Groups
 
 ```ts
-await tc.pricing.listConfigurations();
-await tc.pricing.getConfiguration('default');
-await tc.pricing.createConfiguration({ Name: 'EU' });
-await tc.pricing.updateConfiguration('default', { Default: true });
-await tc.pricing.deleteConfiguration('legacy');
-await tc.pricing.savePrices('pro', { Prices: [/* ... */] });
-await tc.pricing.getPrices('pro');
+await tc.productSku.generateSchema({ ProductCode: 'pro' });
+await tc.productSku.search({ ProductCode: 'pro' });
+await tc.productSku.delete({ ProductCode: 'pro', SKUCode: 'sku-a' });
+
+await tc.productGroups.list();
+await tc.productGroups.create({ Name: 'SaaS' });
+await tc.productGroups.get('group-1');
+await tc.productGroups.getForProduct('pro');
+await tc.productGroups.assignToProduct('pro', 'group-1');
+await tc.productGroups.unassignFromProduct('pro', 'group-1');
+```
+
+### Price Options & Pricing Configurations
+
+```ts
+await tc.priceOptions.list();
+await tc.priceOptions.create({ Name: 'Seats' });
+await tc.priceOptions.get('seats');
+await tc.priceOptions.update('seats', { Name: 'Users' });
+await tc.priceOptions.listForProduct('pro');
+
+await tc.pricingConfigurations.list('pro');
+await tc.pricingConfigurations.get('pro', 'default');
+await tc.pricingConfigurations.create('pro', { Name: 'EU' });
+await tc.pricingConfigurations.update('pro', 'default', { Default: true });
+await tc.pricingConfigurations.updatePrices('pro', 'default', { Prices: [/* ... */] });
+await tc.pricingConfigurations.assignPriceOption('pro', 'default', 'seats');
+await tc.pricingConfigurations.unassignPriceOption('pro', 'default', 'seats');
+await tc.pricingConfigurations.getSkuCodeByDetails('pro', 'default', { Country: 'US' });
+await tc.pricingConfigurations.getSkuDetails('pro', 'default', 'sku-a');
+```
+
+`tc.pricing` remains as a deprecated alias for the product-scoped
+`tc.pricingConfigurations` methods. It no longer calls the non-official
+`/pricing/configurations/` routes.
+
+### Tax Categories
+
+```ts
+await tc.taxCategories.list();
 ```
 
 ### Customers
@@ -147,7 +187,32 @@ Compatibility caveats:
 - `subscriptions.cancel(reference)` is kept as an alias for `disable(reference)`,
   which calls `DELETE /subscriptions/{reference}/`.
 
-### Orders & Refunds
+### Checkout & Payment Methods
+
+```ts
+await tc.paymentMethods.createToken({ /* 2Pay.js / EES token payload */ });
+await tc.paymentMethods.startApplePaySession({ /* Apple Pay validation payload */ });
+await tc.paymentMethods.decryptApplePayData({ /* Apple Pay payment data */ });
+await tc.paymentMethods.listIdealIssuerBanks();
+await tc.paymentMethods.getPayPalExpressRedirectUrl({ ReturnUrl: 'https://shop.example/ok' });
+await tc.paymentMethods.validatePreviousOrderReference('previous-order-ref');
+await tc.paymentMethods.getInstallments({
+  Amount: 100,
+  Country: 'BR',
+  Currency: 'BRL',
+  CardBin: '411111',
+});
+
+await tc.cartSettings.listPaymentMethods({ CountryCode: 'US', PaymentMethod: 'CC' });
+await tc.cartSettings.listCurrencies({ CountryCode: 'US', PaymentMethod: 'CC' });
+await tc.cartSettings.listCountries({ Language: 'en' });
+await tc.cartSettings.listCountryStates('US');
+await tc.cartSettings.getDynamicProductSession({ Items: [/* ... */] });
+await tc.cartSettings.getPrice({ Item: { Code: 'plan-pro', Quantity: 1 } });
+await tc.cartSettings.getShippingPrice({ Country: 'US', Items: [/* ... */] });
+```
+
+### Orders, Refunds & Invoices
 
 ```ts
 await tc.orders.list();
@@ -156,7 +221,27 @@ await tc.orders.place({ Currency: 'USD', Country: 'US', Items: [/* ... */] });
 await tc.orders.update('order-1', { ExternalReference: 'crm-1' });
 await tc.orders.refund('order-1', { Amount: 19.99, Reason: 'requested' });
 await tc.orders.listRefunds('order-1');
+await tc.orders.cancelRefund('order-1');
+await tc.orders.cancel('purchase-order-ref');
+await tc.orders.uploadForm('purchase-order-ref', { FileContent: 'base64' });
+await tc.orders.getReferenceBySaleId(123);
+await tc.orders.getReferenceByInvoiceId('INV-1');
 await tc.orders.issueInvoice('order-1');
+
+await tc.invoices.getOrderInvoice('order-1');
+await tc.invoices.getRefundInvoice('order-1', 'refunds', 0);
+```
+
+### Proposals
+
+```ts
+await tc.proposals.list({ Name: 'renewal' });
+await tc.proposals.create({ Name: 'Renewal proposal', Items: [/* ... */] });
+await tc.proposals.get('proposal-1');
+await tc.proposals.update('proposal-1', { Name: 'Updated proposal' });
+await tc.proposals.executeAction('proposal-1', { Action: 'send' });
+await tc.proposals.listHistory('proposal-1');
+await tc.proposals.getHistoryVersion('proposal-1', 2);
 ```
 
 ### Promotions
@@ -182,8 +267,7 @@ await tc.crossSell.updateTexts('camp-1', { Header: 'Add this and save 20%' });
 ```ts
 await tc.shipping.listMethods();
 await tc.shipping.listFees();
-await tc.shipping.createFee({ Name: 'EU shipping', Amount: 5, Currency: 'EUR' });
-await tc.shipping.updateFee('fee-1', { Amount: 7 });
+await tc.shipping.getFee('fee-1');
 ```
 
 ## Error handling

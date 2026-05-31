@@ -31,18 +31,47 @@ describe('2Checkout resource routing', () => {
     await client.products.get('sku-1');
     await client.products.create({ ProductName: 'Plan' });
     await client.products.update('sku-1', { Enabled: true });
+    await client.products.enable('sku-1');
     await client.products.delete('sku-1');
     await client.products.search({ Search: 'plan' });
+    await client.products.listImages('sku-1');
+    await client.products.getImage('sku-1', 'default');
+    await client.products.listCrossSells('sku-1');
+    await client.products.setUpgradeSchema('sku-1', { Upgrades: [] });
     await client.products.listPriceOptions('sku-1');
+    await client.products.listPromotions('sku-1');
+    await client.products.getPromotion('sku-1', 'promo-1');
+
+    // Product SKU
+    await client.productSku.generateSchema({ ProductCode: 'sku-1' });
+    await client.productSku.search({ ProductCode: 'sku-1' });
+    await client.productSku.delete({ ProductCode: 'sku-1', SKUCode: 'sku-a' });
+
+    // Product groups
+    await client.productGroups.list();
+    await client.productGroups.create({ Name: 'SaaS' });
+    await client.productGroups.get('group-1');
+    await client.productGroups.getForProduct('sku-1');
+    await client.productGroups.assignToProduct('sku-1', 'group-1');
+    await client.productGroups.unassignFromProduct('sku-1', 'group-1');
+
+    // Price options
+    await client.priceOptions.list();
+    await client.priceOptions.create({ Name: 'Seats' });
+    await client.priceOptions.get('seats');
+    await client.priceOptions.update('seats', { Name: 'Users' });
+    await client.priceOptions.listForProduct('sku-1');
 
     // Pricing
-    await client.pricing.listConfigurations();
-    await client.pricing.getConfiguration('default');
-    await client.pricing.createConfiguration({ Name: 'EU' });
-    await client.pricing.updateConfiguration('default', { Name: 'Global' });
-    await client.pricing.deleteConfiguration('default');
-    await client.pricing.savePrices('sku-1', { Prices: [] });
-    await client.pricing.getPrices('sku-1');
+    await client.pricingConfigurations.list('sku-1');
+    await client.pricingConfigurations.get('sku-1', 'default');
+    await client.pricingConfigurations.create('sku-1', { Name: 'EU' });
+    await client.pricingConfigurations.update('sku-1', 'default', { Name: 'Global' });
+    await client.pricingConfigurations.updatePrices('sku-1', 'default', { Prices: [] });
+    await client.pricingConfigurations.assignPriceOption('sku-1', 'default', 'seats');
+    await client.pricingConfigurations.unassignPriceOption('sku-1', 'default', 'seats');
+    await client.pricingConfigurations.getSkuCodeByDetails('sku-1', 'default', { Country: 'US' });
+    await client.pricingConfigurations.getSkuDetails('sku-1', 'default', 'sku-a');
 
     // Customers
     await client.customers.list();
@@ -72,7 +101,42 @@ describe('2Checkout resource routing', () => {
     await client.orders.search({ Status: 'COMPLETE' });
     await client.orders.refund('order-1', { Amount: 10 });
     await client.orders.listRefunds('order-1');
+    await client.orders.cancelRefund('order-1');
+    await client.orders.cancel('order-1');
+    await client.orders.uploadForm('order-1', { FileContent: 'base64' });
+    await client.orders.getReferenceBySaleId(123);
+    await client.orders.getReferenceByInvoiceId('INV-1');
     await client.orders.issueInvoice('order-1');
+
+    // Checkout, cart settings, payment methods, invoices, proposals
+    await client.paymentMethods.createToken({ CardNumber: '4111111111111111' });
+    await client.paymentMethods.startApplePaySession({ ValidationURL: 'https://apple.test' });
+    await client.paymentMethods.decryptApplePayData({ PaymentData: { token: 'encrypted' } });
+    await client.paymentMethods.listIdealIssuerBanks();
+    await client.paymentMethods.getPayPalExpressRedirectUrl({ ReturnUrl: 'https://shop.test/ok' });
+    await client.paymentMethods.validatePreviousOrderReference('order-1');
+    await client.paymentMethods.getInstallments({
+      Amount: 100,
+      Country: 'BR',
+      Currency: 'BRL',
+      CardBin: '411111',
+    });
+    await client.cartSettings.listPaymentMethods({ CountryCode: 'US', PaymentMethod: 'CC' });
+    await client.cartSettings.listCurrencies({ CountryCode: 'US', PaymentMethod: 'CC' });
+    await client.cartSettings.listCountries({ Language: 'en' });
+    await client.cartSettings.listCountryStates('US');
+    await client.cartSettings.getDynamicProductSession({ Items: [] });
+    await client.cartSettings.getPrice({ Item: { Code: 'sku-1' } });
+    await client.cartSettings.getShippingPrice({ Country: 'US', Items: [] });
+    await client.invoices.getOrderInvoice('order-1');
+    await client.invoices.getRefundInvoice('order-1', 'refunds', 0);
+    await client.proposals.list({ Name: 'renewal' });
+    await client.proposals.create({ Name: 'Proposal' });
+    await client.proposals.get('proposal-1');
+    await client.proposals.update('proposal-1', { Name: 'Updated' });
+    await client.proposals.executeAction('proposal-1', { Action: 'send' });
+    await client.proposals.listHistory('proposal-1', { Limit: 10 });
+    await client.proposals.getHistoryVersion('proposal-1', 2);
 
     // Promotions
     await client.promotions.list();
@@ -95,12 +159,11 @@ describe('2Checkout resource routing', () => {
 
     // Shipping
     await client.shipping.listMethods();
-    await client.shipping.getMethod('ground');
     await client.shipping.listFees();
     await client.shipping.getFee('fee-1');
-    await client.shipping.createFee({ Name: 'EU shipping' });
-    await client.shipping.updateFee('fee-1', { Amount: 5 });
-    await client.shipping.deleteFee('fee-1');
+
+    // Tax categories
+    await client.taxCategories.list();
 
     expect(calls.map(({ url, method }) => `${method} ${url.pathname}`)).toEqual([
       // Products
@@ -108,17 +171,43 @@ describe('2Checkout resource routing', () => {
       'GET /rest/6.0/products/sku-1/',
       'POST /rest/6.0/products/',
       'PUT /rest/6.0/products/sku-1/',
+      'POST /rest/6.0/products/sku-1/',
       'DELETE /rest/6.0/products/sku-1/',
-      'GET /rest/6.0/products/search/',
-      'GET /rest/6.0/products/sku-1/prices/',
+      'GET /rest/6.0/products/',
+      'GET /rest/6.0/products/sku-1/productimages/',
+      'GET /rest/6.0/products/sku-1/productimages/default/',
+      'GET /rest/6.0/products/sku-1/crosssells/',
+      'POST /rest/6.0/products/sku-1/upgrade/',
+      'GET /rest/6.0/products/sku-1/priceoptions/',
+      'GET /rest/6.0/products/sku-1/promotions/',
+      'GET /rest/6.0/products/sku-1/promotions/promo-1/',
+      // Product SKU
+      'GET /rest/6.0/productsku/',
+      'GET /rest/6.0/productsku/search',
+      'POST /rest/6.0/productsku/delete',
+      // Product groups
+      'GET /rest/6.0/productgroups/',
+      'POST /rest/6.0/productgroups/',
+      'GET /rest/6.0/productgroups/group-1/',
+      'GET /rest/6.0/products/sku-1/productgroups/',
+      'POST /rest/6.0/products/sku-1/productgroups/group-1/',
+      'DELETE /rest/6.0/products/sku-1/productgroups/group-1/',
+      // Price options
+      'GET /rest/6.0/priceoptions/',
+      'POST /rest/6.0/priceoptions/',
+      'GET /rest/6.0/priceoptions/seats/',
+      'PUT /rest/6.0/priceoptions/seats/',
+      'GET /rest/6.0/products/sku-1/priceoptions/',
       // Pricing
-      'GET /rest/6.0/pricing/configurations/',
-      'GET /rest/6.0/pricing/configurations/default/',
-      'POST /rest/6.0/pricing/configurations/',
-      'PUT /rest/6.0/pricing/configurations/default/',
-      'DELETE /rest/6.0/pricing/configurations/default/',
-      'POST /rest/6.0/products/sku-1/prices/',
-      'GET /rest/6.0/products/sku-1/prices/',
+      'GET /rest/6.0/products/sku-1/pricingconfigurations/',
+      'GET /rest/6.0/products/sku-1/pricingconfigurations/default/',
+      'POST /rest/6.0/products/sku-1/pricingconfigurations/',
+      'PUT /rest/6.0/products/sku-1/pricingconfigurations/default/',
+      'PUT /rest/6.0/products/sku-1/pricingconfigurations/default/prices',
+      'POST /rest/6.0/products/sku-1/pricingconfigurations/default/priceoptions/seats/',
+      'DELETE /rest/6.0/products/sku-1/pricingconfigurations/default/priceoptions/seats/',
+      'GET /rest/6.0/products/sku-1/pricingconfigurations/default/sku/match/',
+      'GET /rest/6.0/products/sku-1/pricingconfigurations/default/sku/sku-a/',
       // Customers
       'GET /rest/6.0/customers/',
       'GET /rest/6.0/customers/42/',
@@ -145,7 +234,36 @@ describe('2Checkout resource routing', () => {
       'GET /rest/6.0/orders/search/',
       'POST /rest/6.0/orders/order-1/refund/',
       'GET /rest/6.0/orders/order-1/refund/',
+      'DELETE /rest/6.0/orders/order-1/refund/',
+      'DELETE /rest/6.0/orders/order-1/',
+      'POST /rest/6.0/orders/order-1/upload',
+      'GET /rest/6.0/orders/0/sale/',
+      'GET /rest/6.0/orders/0/invoice/',
       'POST /rest/6.0/orders/order-1/invoice/',
+      // Checkout, cart settings, payment methods, invoices, proposals
+      'POST /rest/6.0/tokens/',
+      'POST /rest/6.0/payments/startapplepaysession/',
+      'POST /rest/6.0/payments/decryptApplePayData/',
+      'GET /rest/6.0/paymentmethods/IDEAL/issuerbanks/',
+      'PUT /rest/6.0/paymentmethods/PAYPAL_EXPRESS/redirecturl/',
+      'GET /rest/6.0/paymentmethods/PREVIOUS_ORDER/refno/order-1/',
+      'GET /rest/6.0/orders/0/installments/',
+      'GET /rest/6.0/paymentmethods/',
+      'GET /rest/6.0/currencies/',
+      'GET /rest/6.0/countries/',
+      'GET /rest/6.0/countries/US/states/',
+      'PUT /rest/6.0/orders/0/',
+      'PUT /rest/6.0/orders/0/price/',
+      'PUT /rest/6.0/orders/0/shipping/',
+      'GET /rest/6.0/invoices/order-1/',
+      'GET /rest/6.0/invoices/order-1/refunds/0/',
+      'GET /rest/6.0/proposals/',
+      'POST /rest/6.0/proposals/',
+      'GET /rest/6.0/proposals/proposal-1',
+      'PATCH /rest/6.0/proposals/proposal-1',
+      'POST /rest/6.0/proposals/proposal-1/action',
+      'GET /rest/6.0/proposals/proposal-1/history',
+      'GET /rest/6.0/proposals/proposal-1/history/2',
       // Promotions
       'GET /rest/6.0/promotions/',
       'GET /rest/6.0/promotions/promo-1/',
@@ -164,13 +282,11 @@ describe('2Checkout resource routing', () => {
       'GET /rest/6.0/crosssell/campaigns/camp-1/texts/',
       'PUT /rest/6.0/crosssell/campaigns/camp-1/texts/',
       // Shipping
-      'GET /rest/6.0/shipping/methods/',
-      'GET /rest/6.0/shipping/methods/ground/',
-      'GET /rest/6.0/shipping/fees/',
-      'GET /rest/6.0/shipping/fees/fee-1/',
-      'POST /rest/6.0/shipping/fees/',
-      'PUT /rest/6.0/shipping/fees/fee-1/',
-      'DELETE /rest/6.0/shipping/fees/fee-1/',
+      'GET /rest/6.0/shippingmethods',
+      'GET /rest/6.0/shippingfees/',
+      'GET /rest/6.0/shippingfees/fee-1/',
+      // Tax categories
+      'GET /rest/6.0/taxcategories/',
     ]);
 
     // Spot-check query serialization and body content
@@ -179,6 +295,23 @@ describe('2Checkout resource routing', () => {
       (c) => c.method === 'POST' && c.url.pathname === '/rest/6.0/orders/',
     )?.body;
     expect(ordersPlaceBody && JSON.parse(ordersPlaceBody)).toEqual({ Currency: 'USD' });
+
+    const invoiceLookupCall = calls.find(
+      (c) => c.method === 'GET' && c.url.pathname === '/rest/6.0/orders/0/invoice/',
+    );
+    expect(invoiceLookupCall?.url.searchParams.get('InvoiceId')).toBe('INV-1');
+
+    const installmentsCall = calls.find(
+      (c) => c.method === 'GET' && c.url.pathname === '/rest/6.0/orders/0/installments/',
+    );
+    expect(installmentsCall?.url.searchParams.get('Amount')).toBe('100');
+    expect(installmentsCall?.url.searchParams.get('CardBin')).toBe('411111');
+
+    const paymentMethodsCall = calls.find(
+      (c) => c.method === 'GET' && c.url.pathname === '/rest/6.0/paymentmethods/',
+    );
+    expect(paymentMethodsCall?.url.searchParams.get('CountryCode')).toBe('US');
+    expect(paymentMethodsCall?.url.searchParams.get('PaymentMethod')).toBe('CC');
   });
 
   it('routes official REST 6.0 subscription lifecycle methods', async () => {
