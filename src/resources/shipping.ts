@@ -16,22 +16,15 @@ export class ShippingResource {
   listMethods(query?: QueryRecord): Promise<TwoCheckoutList<TwoCheckoutShippingMethod>> {
     return this.httpClient.request({
       method: 'GET',
-      path: 'shipping/methods/',
+      path: 'shippingmethods',
       query,
-    });
-  }
-
-  getMethod(code: string): Promise<TwoCheckoutShippingMethod> {
-    return this.httpClient.request({
-      method: 'GET',
-      path: `shipping/methods/${encodeURIComponent(code)}/`,
     });
   }
 
   listFees(query?: QueryRecord): Promise<TwoCheckoutList<TwoCheckoutShippingFee>> {
     return this.httpClient.request({
       method: 'GET',
-      path: 'shipping/fees/',
+      path: 'shippingfees/',
       query,
     });
   }
@@ -39,30 +32,7 @@ export class ShippingResource {
   getFee(code: string): Promise<TwoCheckoutShippingFee> {
     return this.httpClient.request({
       method: 'GET',
-      path: `shipping/fees/${encodeURIComponent(code)}/`,
-    });
-  }
-
-  createFee(body: CreateShippingFeeInput): Promise<TwoCheckoutShippingFee> {
-    return this.httpClient.request({
-      method: 'POST',
-      path: 'shipping/fees/',
-      body,
-    });
-  }
-
-  updateFee(code: string, body: UpdateShippingFeeInput): Promise<TwoCheckoutShippingFee> {
-    return this.httpClient.request({
-      method: 'PUT',
-      path: `shipping/fees/${encodeURIComponent(code)}/`,
-      body,
-    });
-  }
-
-  deleteFee(code: string): Promise<void> {
-    return this.httpClient.request({
-      method: 'DELETE',
-      path: `shipping/fees/${encodeURIComponent(code)}/`,
+      path: `shippingfees/${encodeURIComponent(code)}/`,
     });
   }
 }
